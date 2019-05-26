@@ -81,14 +81,14 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./create.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = "./delete.js");
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ "./create.js":
+/***/ "./delete.js":
 /*!*******************!*\
-  !*** ./create.js ***!
+  !*** ./delete.js ***!
   \*******************/
 /*! exports provided: main */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
@@ -96,66 +96,87 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "main", function() { return main; });
-/* harmony import */ var uuid__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! uuid */ "uuid");
-/* harmony import */ var uuid__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(uuid__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var aws_sdk__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! aws-sdk */ "aws-sdk");
-/* harmony import */ var aws_sdk__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(aws_sdk__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _libs_dynamodb_lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./libs/dynamodb-lib */ "./libs/dynamodb-lib.js");
+/* harmony import */ var _libs_response_lib__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./libs/response-lib */ "./libs/response-lib.js");
 
 
 
-const dynamoDb = new aws_sdk__WEBPACK_IMPORTED_MODULE_1___default.a.DynamoDB.DocumentClient();
-
-function main(event, context, callback) {
-    // Request body is passed in as a JSON encoded string in 'event.body'
-    const data = JSON.parse(event.body);
-
+async function main(event, context) {
     const params = {
         TableName: "notes",
-        // 'Item' contains the attributes of the item to be created
-        // - 'userId': user identities are federated through the
-        //             Cognito Identity Pool, we will use the identity id
-        //             as the user id of the authenticated user
-        // - 'noteId': a unique uuid
-        // - 'content': parsed from request body
-        // - 'attachment': parsed from request body
-        // - 'createdAt': current Unix timestamp
-        Item: {
+        // 'Key' defines the partition key and sort key of the item to be removed
+        // - 'userId': Identity Pool identity id of the authenticated user
+        // - 'noteId': path parameter
+        Key: {
             userId: event.requestContext.identity.cognitoIdentityId,
-            noteId: uuid__WEBPACK_IMPORTED_MODULE_0___default.a.v1(),
-            content: data.content,
-            attachment: data.attachment,
-            createdAt: Date.now()
+            noteId: event.pathParameters.id
         }
     };
 
-    dynamoDb.put(params, (error, data) => {
-        // Set response headers to enable CORS (Cross-Origin Resource Sharing)
-        const headers = {
+    try {
+        const result = await _libs_dynamodb_lib__WEBPACK_IMPORTED_MODULE_0__["call"]("delete", params);
+        return Object(_libs_response_lib__WEBPACK_IMPORTED_MODULE_1__["success"])({
+            status: true
+        });
+    } catch (e) {
+        return Object(_libs_response_lib__WEBPACK_IMPORTED_MODULE_1__["failure"])({
+            status: false
+        });
+    }
+}
+
+/***/ }),
+
+/***/ "./libs/dynamodb-lib.js":
+/*!******************************!*\
+  !*** ./libs/dynamodb-lib.js ***!
+  \******************************/
+/*! exports provided: call */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "call", function() { return call; });
+/* harmony import */ var aws_sdk__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! aws-sdk */ "aws-sdk");
+/* harmony import */ var aws_sdk__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(aws_sdk__WEBPACK_IMPORTED_MODULE_0__);
+
+
+function call(action, params) {
+    const dynamoDb = new aws_sdk__WEBPACK_IMPORTED_MODULE_0___default.a.DynamoDB.DocumentClient();
+
+    return dynamoDb[action](params).promise();
+}
+
+/***/ }),
+
+/***/ "./libs/response-lib.js":
+/*!******************************!*\
+  !*** ./libs/response-lib.js ***!
+  \******************************/
+/*! exports provided: success, failure */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "success", function() { return success; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "failure", function() { return failure; });
+function success(body) {
+    return buildResponse(200, body);
+}
+
+function failure(body) {
+    return buildResponse(500, body);
+}
+
+function buildResponse(statusCode, body) {
+    return {
+        statusCode: statusCode,
+        headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Credentials": true
-        };
-
-        // Return status code 500 on error
-        if (error) {
-            const response = {
-                statusCode: 500,
-                headers: headers,
-                body: JSON.stringify({
-                    status: false
-                })
-            };
-            callback(null, response);
-            return;
-        }
-
-        // Return status code 200 and the newly created item
-        const response = {
-            statusCode: 200,
-            headers: headers,
-            body: JSON.stringify(params.Item)
-        };
-        callback(null, response);
-    });
+        },
+        body: JSON.stringify(body)
+    };
 }
 
 /***/ }),
@@ -169,18 +190,7 @@ function main(event, context, callback) {
 
 module.exports = require("aws-sdk");
 
-/***/ }),
-
-/***/ "uuid":
-/*!***********************!*\
-  !*** external "uuid" ***!
-  \***********************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("uuid");
-
 /***/ })
 
 /******/ })));
-//# sourceMappingURL=create.js.map
+//# sourceMappingURL=delete.js.map
